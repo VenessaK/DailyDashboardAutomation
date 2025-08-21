@@ -1,0 +1,429 @@
+{
+  "name": "DailyDashboardGenerator",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8,
+              "triggerAtMinute": 30
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -600,
+        -140
+      ],
+      "id": "",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "path": "daily-dashboard-test",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        -140
+      ],
+      "id": "",
+      "name": "Webhook",
+      "webhookId": ""
+    },
+    {
+      "parameters": {
+        "jsCode": "const weather = $json.current_weather;\nreturn [{\n  json: {\n    temperature: weather?.temperature || \"N/A\",\n    windspeed: weather?.windspeed || \"N/A\",\n    condition: weather?.weathercode || \"N/A\"\n  }\n}];\n\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        -340
+      ],
+      "id": "",
+      "name": "Format Weather"
+    },
+    {
+      "parameters": {
+        "url": "",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        60,
+        -340
+      ],
+      "id": "",
+      "name": "Weather API"
+    },
+    {
+      "parameters": {
+        "url": "",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        60,
+        -140
+      ],
+      "id": "",
+      "name": "Crypto API"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      bitcoin: $json.bitcoin.usd,\n      ethereum: $json.ethereum.usd\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        -140
+      ],
+      "id": "",
+      "name": "Format Crypto"
+    },
+    {
+      "parameters": {
+        "url": "",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        60,
+        60
+      ],
+      "id": "",
+      "name": "News API"
+    },
+    {
+      "parameters": {
+        "jsCode": "const topArticles = $json.articles.slice(0,5).map(a => ({title: a.title, url: a.url}));\nreturn [{ json: { headlines: topArticles } }];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        60
+      ],
+      "id": "",
+      "name": "Format News"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      combinedData: {\n        weather: $items()[0].json,\n        crypto: $items()[1].json,\n        news: $items()[2].json\n      }\n    }\n  }\n];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        -140
+      ],
+      "id": "",
+      "name": "Combine All Data"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2040,
+        -40
+      ],
+      "id": "",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        620,
+        -140
+      ],
+      "id": "",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "model": "z-ai/glm-4.5-air:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        1140,
+        140
+      ],
+      "id": "",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "",
+              "name": "emailHTML",
+              "value": "={{ $json[\"text\"] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1780,
+        -40
+      ],
+      "id": "",
+      "name": "Send Email Placeholder"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      text: $json[\"text\"]\n        .replace(/^```html\\n/, \"\")   // remove opening ```html\n        .replace(/```$/, \"\")         // remove closing ```\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        -40
+      ],
+      "id": "",
+      "name": "Refine"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1120,
+        -240
+      ],
+      "id": "",
+      "name": "Dashboard Data Webhook"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify($json[\"combinedData\"]) }}\n",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are an email designer. Take the following JSON data and format it into a clean HTML email with these sections: Include sections for Weather, News, and Crypto.  Weather should show temperature, windspeed, and condition.  News should list headlines as clickable links.  Crypto should show Bitcoin and Ethereum prices.  Keep it minimal and readable in an email.  If any of the information is unavailable, just don't add it.\n“Return only the raw HTML string for the email. Do not wrap it in ```html or any code fences.”"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        1140,
+        -40
+      ],
+      "id": "",
+      "name": "Write Dashboard Email llm"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        []
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Weather API",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Crypto API",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "News API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weather API": {
+      "main": [
+        [
+          {
+            "node": "Format Weather",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Weather": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crypto API": {
+      "main": [
+        [
+          {
+            "node": "Format Crypto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "News API": {
+      "main": [
+        [
+          {
+            "node": "Format News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format News": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Format Crypto": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Combine All Data": {
+      "main": [
+        [
+          {
+            "node": "Dashboard Data Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Combine All Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Write Dashboard Email llm",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        []
+      ]
+    },
+    "Send Email Placeholder": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refine": {
+      "main": [
+        [
+          {
+            "node": "Send Email Placeholder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Dashboard Email llm": {
+      "main": [
+        [
+          {
+            "node": "Refine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": ""
+  },
+  "id": "",
+  "tags": []
+}
